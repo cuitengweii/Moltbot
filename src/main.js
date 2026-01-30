@@ -1,12 +1,20 @@
 // Main JavaScript file for ClawdTM Clone
-import { mockSkills, categories, featuredSkills } from './data.js';
+import { dataSource, getFeaturedSkills, searchSkills, installSkill, isSkillInstalled } from './data-source.js'
+
+// Global state
+let currentUser = null
+let installedSkills = new Set()
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     console.log('ClawdTM Clone initialized');
+    console.log('Data source:', dataSource.useSupabase ? 'Supabase' : 'Mock Data');
+    
+    // Initialize authentication
+    initializeAuth();
     
     // Load and display skills
-    loadSkills();
+    loadFeaturedSkills();
     
     // Initialize mobile menu
     initializeMobileMenu();
@@ -14,25 +22,73 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize search functionality
     initializeSearch();
     
-    // Initialize skill cards interactions
-    initializeSkillCards();
+    // Initialize category browsing
+    initializeCategories();
 });
 
-function loadSkills() {
+async function initializeAuth() {
+    // Check if user is logged in (mock implementation)
+    // In a real app, this would check localStorage or make an API call
+    const savedUser = localStorage.getItem('clawdtm_user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateUIForLoggedInUser(currentUser);
+        
+        // Load installed skills for logged-in user
+        await loadInstalledSkills();
+    }
+}
+
+async function loadFeaturedSkills() {
     const skillsGrid = document.querySelector('.grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.xl\:grid-cols-4');
     
     if (!skillsGrid) return;
     
-    // Clear existing content (except the first 4 cards which are template)
-    skillsGrid.innerHTML = '';
+    // Show loading state
+    skillsGrid.innerHTML = `
+        <div class="col-span-full text-center py-8">
+            <i class="fas fa-spinner fa-spin text-primary-500 text-2xl"></i>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Loading skills...</p>
+        </div>
+    `;
     
-    // Display featured skills
-    featuredSkills.forEach(skillId => {
-        const skill = mockSkills.find(s => s.id === skillId);
-        if (skill) {
-            skillsGrid.appendChild(createSkillCard(skill));
+    try {
+        const result = await getFeaturedSkills();
+        
+        if (result.success) {
+            skillsGrid.innerHTML = '';
+            
+            if (result.data.length === 0) {
+                skillsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No skills available yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Load installation status for each skill
+            const skillsWithStatus = await Promise.all(
+                result.data.map(async (skill) => {
+                    const isInstalled = await isSkillInstalled(skill.id, currentUser?.id);
+                    return { ...skill, installed: isInstalled };
+                })
+            );
+            
+            skillsWithStatus.forEach(skill => {
+                skillsGrid.appendChild(createSkillCard(skill));
+            });
+            
+            // Initialize install buttons
+            initializeSkillCards();
+        } else {
+            showNotification('Failed to load skills', 'error');
         }
-    });
+    } catch (error) {
+        console.error('Error loading skills:', error);
+        showNotification('Error loading skills', 'error');
+    }
 }
 
 function createSkillCard(skill) {
@@ -55,7 +111,7 @@ function createSkillCard(skill) {
             </p>
             <div class="flex justify-between items-center">
                 <span class="text-xs text-gray-500 dark:text-gray-400">★ ${skill.rating} (${skill.reviewCount})</span>
-                <button class="install-btn bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors" data-skill-id="${skill.id}">
+                <button class="install-btn ${skill.installed ? 'installed' : ''} bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors" data-skill-id="${skill.id}">
                     ${skill.installed ? '<i class="fas fa-check"></i> Installed' : 'Install'}
                 </button>
             </div>
@@ -87,6 +143,17 @@ function initializeSearch() {
     const searchInputs = document.querySelectorAll('input[type="text"][placeholder*="Search"]');
     
     searchInputs.forEach(input => {
+        // Real-time search with debounce
+        let searchTimeout;
+        input.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (e.target.value.trim()) {
+                    performSearch(e.target.value);
+                }
+            }, 300);
+        });
+        
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 performSearch(input.value);
@@ -103,47 +170,75 @@ function initializeSearch() {
     });
 }
 
-function performSearch(query) {
-    if (!query.trim()) return;
+async function performSearch(query) {
+    if (!query.trim()) {
+        await loadFeaturedSkills();
+        return;
+    }
     
-    console.log('Searching for:', query);
-    
-    // Filter skills based on search query
-    const filteredSkills = mockSkills.filter(skill => 
-        skill.name.toLowerCase().includes(query.toLowerCase()) ||
-        skill.description.toLowerCase().includes(query.toLowerCase()) ||
-        skill.author.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    // Update skills grid with search results
-    updateSkillsGrid(filteredSkills);
-    
-    showNotification(`Found ${filteredSkills.length} results for "${query}"`, 'success');
-}
-
-function updateSkillsGrid(skills) {
     const skillsGrid = document.querySelector('.grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3.xl\:grid-cols-4');
     
     if (!skillsGrid) return;
     
-    skillsGrid.innerHTML = '';
+    // Show loading state
+    skillsGrid.innerHTML = `
+        <div class="col-span-full text-center py-8">
+            <i class="fas fa-spinner fa-spin text-primary-500 text-2xl"></i>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Searching...</p>
+        </div>
+    `;
     
-    if (skills.length === 0) {
-        skillsGrid.innerHTML = `
-            <div class="col-span-full text-center py-8">
-                <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
-                <p class="text-gray-500 dark:text-gray-400">No skills found matching your search</p>
-            </div>
-        `;
-        return;
+    try {
+        const result = await searchSkills(query);
+        
+        if (result.success) {
+            skillsGrid.innerHTML = '';
+            
+            if (result.data.length === 0) {
+                skillsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No skills found matching "${query}"</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Load installation status for each skill
+            const skillsWithStatus = await Promise.all(
+                result.data.map(async (skill) => {
+                    const isInstalled = await isSkillInstalled(skill.id, currentUser?.id);
+                    return { ...skill, installed: isInstalled };
+                })
+            );
+            
+            skillsWithStatus.forEach(skill => {
+                skillsGrid.appendChild(createSkillCard(skill));
+            });
+            
+            // Re-initialize install buttons for new cards
+            initializeSkillCards();
+            
+            showNotification(`Found ${result.data.length} results for "${query}"`, 'success');
+        } else {
+            showNotification('Search failed', 'error');
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        showNotification('Search error', 'error');
     }
+}
+
+function initializeCategories() {
+    const categoryLinks = document.querySelectorAll('a[href="#"][class*="rounded-lg"]');
     
-    skills.forEach(skill => {
-        skillsGrid.appendChild(createSkillCard(skill));
+    categoryLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const categoryName = link.querySelector('span').textContent;
+            performSearch(categoryName);
+        });
     });
-    
-    // Re-initialize install buttons for new cards
-    initializeSkillCards();
 }
 
 function initializeSkillCards() {
@@ -153,35 +248,77 @@ function initializeSkillCards() {
         button.addEventListener('click', (e) => {
             e.preventDefault();
             
-            const skillId = parseInt(button.getAttribute('data-skill-id'));
-            const skill = mockSkills.find(s => s.id === skillId);
-            
-            if (skill) {
-                installSkill(skill, button);
+            if (!currentUser) {
+                showNotification('Please log in to install skills', 'warning');
+                return;
             }
+            
+            const skillId = parseInt(button.getAttribute('data-skill-id'));
+            handleInstallSkill(skillId, button);
         });
     });
 }
 
-function installSkill(skill, button) {
+async function handleInstallSkill(skillId, button) {
     const originalText = button.textContent;
+    const isCurrentlyInstalled = button.classList.contains('installed');
     
     // Show installing state
     button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + 
+                      (isCurrentlyInstalled ? 'Uninstalling...' : 'Installing...');
     
-    // Simulate installation process
-    setTimeout(() => {
-        skill.installed = true;
+    try {
+        if (isCurrentlyInstalled) {
+            // Uninstall logic would go here
+            await new Promise(resolve => setTimeout(resolve, 800));
+            button.classList.remove('installed');
+            button.innerHTML = 'Install';
+            showNotification('Skill uninstalled', 'success');
+        } else {
+            const result = await installSkill(skillId, currentUser?.id);
+            
+            if (result.success) {
+                button.classList.add('installed');
+                button.innerHTML = '<i class="fas fa-check"></i> Installed';
+                button.classList.remove('bg-primary-500', 'hover:bg-primary-600');
+                button.classList.add('bg-green-500', 'hover:bg-green-600');
+                showNotification(result.message, 'success');
+            } else {
+                showNotification(result.message || 'Installation failed', 'error');
+                button.innerHTML = originalText;
+            }
+        }
+    } catch (error) {
+        console.error('Installation error:', error);
+        showNotification('Installation failed', 'error');
+        button.innerHTML = originalText;
+    } finally {
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-check"></i> Installed';
-        button.classList.remove('bg-primary-500', 'hover:bg-primary-600');
-        button.classList.add('bg-green-500', 'hover:bg-green-600');
-        
-        showNotification(`Successfully installed "${skill.name}"`, 'success');
-        
-        // Don't revert - keep as installed
-    }, 2000);
+    }
+}
+
+async function loadInstalledSkills() {
+    if (!currentUser) return;
+    
+    try {
+        // This would call SupabaseAPI.getUserInstalledSkills in a real implementation
+        // For now, we'll just update the UI based on localStorage
+        const savedInstalled = localStorage.getItem('clawdtm_installed_skills');
+        if (savedInstalled) {
+            installedSkills = new Set(JSON.parse(savedInstalled));
+        }
+    } catch (error) {
+        console.error('Error loading installed skills:', error);
+    }
+}
+
+function updateUIForLoggedInUser(user) {
+    // Update user menu to show user info
+    const userButton = document.querySelector('button:has(.fa-user)');
+    if (userButton) {
+        userButton.innerHTML = `<i class="fas fa-user"></i> ${user.username || user.email.split('@')[0]}`;
+    }
 }
 
 function showNotification(message, type = 'info') {
@@ -224,9 +361,34 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+// Mock login function (for demo purposes)
+window.mockLogin = function() {
+    currentUser = {
+        id: 'user_123',
+        email: 'demo@example.com',
+        username: 'demo_user'
+    };
+    localStorage.setItem('clawdtm_user', JSON.stringify(currentUser));
+    updateUIForLoggedInUser(currentUser);
+    showNotification('Logged in as demo user', 'success');
+};
+
+// Mock logout function
+window.mockLogout = function() {
+    currentUser = null;
+    localStorage.removeItem('clawdtm_user');
+    const userButton = document.querySelector('button:has(.fa-user)');
+    if (userButton) {
+        userButton.innerHTML = '<i class="fas fa-user"></i>';
+    }
+    showNotification('Logged out', 'info');
+};
+
 // Export functions for global access
 window.ClawdTM = {
     search: performSearch,
     showNotification: showNotification,
-    installSkill: installSkill
+    installSkill: handleInstallSkill,
+    mockLogin: window.mockLogin,
+    mockLogout: window.mockLogout
 };
