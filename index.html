@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClawdTM - Skills for OpenClaw</title>
+    <meta name="description" content="Browse and install skills for your OpenClaw agent. Search through hundreds of community-built skill packs.">
+    <meta name="author" content="ClawdTM">
+    <meta name="keywords" content="openclaw,claude,skills,agent,AI,automation">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="ClawdTM - Skills for OpenClaw">
+    <meta property="og:description" content="Browse and install skills for your OpenClaw agent. Search through hundreds of community-built skill packs.">
+    <meta property="og:url" content="https://clawdtm.com">
+    <meta property="og:site_name" content="ClawdTM">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ClawdTM - Skills for OpenClaw">
+    <meta name="twitter:description" content="Browse and install skills for your OpenClaw agent. Search through hundreds of community-built skill packs.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/icon.png" type="image/png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary-color: #0ea5e9;
+            --primary-hover: #0284c7;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #111827;
+                --bg-secondary: #1f2937;
+                --text-primary: #f9fafb;
+                --text-secondary: #d1d5db;
+                --border-color: #374151;
+            }
+        }
+        
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .glass-effect {
+                background: rgba(17, 24, 39, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-paw text-white text-sm"></i>
+                    </div>
+                    <span class="text-xl font-bold text-gray-900 dark:text-white">ClawdTM</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wide">Skills</span>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium transition-colors">Browse</a>
+                    <a href="#" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium transition-colors">Categories</a>
+                    <a href="#" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium transition-colors">Featured</a>
+                    <a href="#" class="text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium transition-colors">Submit</a>
+                </div>
+                
+                <!-- Right Side -->
+                <div class="flex items-center space-x-4">
+                    <!-- Search -->
+                    <div class="relative hidden md:block">
+                        <input 
+                            type="text" 
+                            placeholder="Search skills..." 
+                            class="w-64 pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <button class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-user text-gray-600 dark:text-gray-400"></i>
+                    </button>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-bars text-gray-600 dark:text-gray-400"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="md:hidden fixed top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg transform translate-y-full transition-transform duration-300">
+        <div class="px-4 py-2 space-y-1">
+            <a href="#" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium">Browse</a>
+            <a href="#" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium">Categories</a>
+            <a href="#" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium">Featured</a>
+            <a href="#" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-500 font-medium">Submit</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="pt-16 min-h-screen">
+        <!-- Hero Section -->
+        <section class="bg-gradient-to-br from-primary-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
+                        Skills for <span class="text-primary-500">OpenClaw</span>
+                    </h1>
+                    <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
+                        Browse and install skills for your OpenClaw agent. Search through hundreds of community-built skill packs.
+                    </p>
+                    
+                    <!-- Search Bar -->
+                    <div class="max-w-2xl mx-auto relative">
+                        <input 
+                            type="text" 
+                            placeholder="Search for skills, categories, or authors..." 
+                            class="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl text-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-lg"
+                        >
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg"></i>
+                        <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skills Grid Section -->
+        <section class="py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Featured Skills</h2>
+                    <div class="flex space-x-2">
+                        <button class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            Popular
+                        </button>
+                        <button class="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            Newest
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Skills Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Skill Card 1 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in">
+                        <div class="p-6">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-robot text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">Web Search</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">by @0xMythril</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                                Enable your agent to search the web for real-time information and current events.
+                            </p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">★ 4.8 (124)</span>
+                                <button class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
+                                    Install
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skill Card 2 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in">
+                        <div class="p-6">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-code text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">Code Editor</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">by @devteam</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                                Advanced code editing capabilities with syntax highlighting and auto-completion.
+                            </p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">★ 4.9 (89)</span>
+                                <button class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
+                                    Install
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skill Card 3 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in">
+                        <div class="p-6">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-image text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">Image Generator</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">by @artbot</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                                Generate and manipulate images using advanced AI models and editing tools.
+                            </p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">★ 4.7 (156)</span>
+                                <button class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
+                                    Install
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skill Card 4 -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in">
+                        <div class="p-6">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-database text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-900 dark:text-white">Database Manager</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">by @datawiz</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                                Manage and query databases with intuitive tools and powerful search capabilities.
+                            </p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">★ 4.6 (72)</span>
+                                <button class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
+                                    Install
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load More Button -->
+                <div class="text-center mt-12">
+                    <button class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-8 py-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Load More Skills
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section class="py-16 bg-gray-50 dark:bg-gray-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-12">Browse by Category</h2>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-search text-blue-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Search</span>
+                    </a>
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-code text-green-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Development</span>
+                    </a>
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-image text-purple-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Creative</span>
+                    </a>
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-database text-orange-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Data</span>
+                    </a>
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-chart-bar text-red-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Analytics</span>
+                    </a>
+                    <a href="#" class="bg-white dark:bg-gray-700 rounded-lg p-4 text-center hover:shadow-lg transition-shadow">
+                        <i class="fas fa-robot text-gray-500 text-2xl mb-2"></i>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">AI Tools</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Logo and Description -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-paw text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900 dark:text-white">ClawdTM</span>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm max-w-md">
+                        The premier marketplace for OpenClaw skills. Discover, install, and share powerful capabilities for your AI agent.
+                    </p>
+                </div>
+                
+                <!-- Links -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Navigation</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Browse Skills</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Categories</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Submit Skill</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Documentation</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Social -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Community</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">GitHub</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Discord</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Twitter</a></li>
+                        <li><a href="#" class="text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors">Blog</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p>© 2024 ClawdTM. All rights reserved. Built with ❤️ for the OpenClaw community.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
